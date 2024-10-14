@@ -22,7 +22,7 @@ return new class extends Migration
             // ->constrained('proveedors')
             // ->onDelete('cascade') //ELIMINAR EN CASCADA
             // ->onUpdate('cascade');
-            $table->integer('cantidad');
+            $table->integer('Cantidad');
             $table->timestamps();
         });
     }
