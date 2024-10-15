@@ -21,4 +21,18 @@ class Product extends Model
     {
         return $this->hasMany(Compra::class, 'products_id');
     }
+
+
+    protected static function booted()
+    {
+        static::saving(function ($product) {
+            // Si el stock es 0 o menor, desactivar el estado
+            if ($product->stock <= 0) {
+                $product->estado = 0;  // Desactivar si no hay stock
+            } else {
+                $product->estado = 1;  // Reactivar si hay stock disponible
+            }
+        });
+    }
+
 }

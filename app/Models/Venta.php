@@ -21,4 +21,23 @@ class Venta extends Model
     {
         return $this->belongsTo(Product::class, 'products_id');
     }
+
+    protected static function booted()
+    {
+        static::created(function ($venta) {
+            $product = $venta->products;
+
+            // Verificar si hay suficiente stock
+            if ($product->stock >= $venta->cantidad) {
+                $product->decrement('stock', $venta->cantidad);
+
+                // Actualizar el estado del producto
+                if ($product->stock <= 0) {
+                    $product->update(['estado' => 0]);  // Desactivar producto si el stock es 0
+                }
+            } else {
+                throw new \Exception('No hay suficiente stock disponible para realizar la venta.');
+            }
+        });
+    }
 }

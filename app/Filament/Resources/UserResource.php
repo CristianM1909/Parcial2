@@ -8,6 +8,9 @@ use App\Models\User;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
+use Filament\Forms\Components\TextInput;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Forms\Components\Select;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -23,18 +26,18 @@ class UserResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\TextInput::make('name')
-                    ->required()
-                    ->maxLength(255),
-                Forms\Components\TextInput::make('email')
-                    ->email()
-                    ->required()
-                    ->maxLength(255),
-                Forms\Components\DateTimePicker::make('email_verified_at'),
-                Forms\Components\TextInput::make('password')
-                    ->password()
-                    ->required()
-                    ->maxLength(255),
+                TextInput::make('name')
+                ->required(),
+                TextInput::make('email')
+                ->email()
+                ->required(),
+                TextInput::make('password')
+                ->password()
+                ->hiddenOn('edit')
+                ->required(),
+                Select::make('roles')
+                ->multiple()
+                ->relationship('roles', 'name'),
             ]);
     }
 
@@ -42,40 +45,41 @@ class UserResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('name')
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('email')
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('email_verified_at')
-                    ->dateTime()
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('deleted_at')->dateTime()->toggleable(),
-                Tables\Columns\TextColumn::make('created_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                Tables\Columns\TextColumn::make('updated_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('name'),
+                TextColumn::make('email'),
+                TextColumn::make('email_verified_at'),
+                TextColumn::make('roles.name'),
             ])
             ->filters([
-                Tables\Filters\TrashedFilter::make(),
+                //
+                Tables\Filters\Filter::make('verified')
+                ->query(fn (Builder $query): Builder => $query
+                ->whereNotNull('email_verified_at')),
             ])
+            //verificado
             ->actions([
                 Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make()->action(function (User $record) {
-                    $record->delete(); // Eliminar suavemente
+                Tables\Actions\Action::make('Verify')
+                ->icon('heroicon-m-check-badge')
+                ->action(function (User $user){
+                    $user ->email_verified_at = Date('Y-m-d H:i:s');
+                    $user ->save();
                 }),
-                Tables\Actions\RestoreAction::make()->action(function (User $record) {
-                    $record->restore(); // Restaurar registro eliminado
+                //no verificado
+                Tables\Actions\Action::make('Unverify')
+                ->icon('heroicon-m-x-circle')
+                ->color('danger')
+                ->action(function (User $user){
+                    $user ->email_verified_at = null;
+                    $user ->save();
                 }),
-                Tables\Actions\Action::make('forceDelete')
-                    ->label('Borrar Definitivamente')
-                    ->action(function (User $record) {
-                        $record->forceDelete(); // Borrado definitivo
-                    })
-                    ->requiresConfirmation(), // Solicita confirmación antes de borrar
+                Tables\Actions\RestoreAction::make(),
+                Tables\Actions\ForceDeleteAction::make(),
+            ])
+            ->bulkActions([
+                Tables\Actions\BulkActionGroup::make([
+                    Tables\Actions\DeleteBulkAction::make(),
+                ]),
             ]);
     }
 

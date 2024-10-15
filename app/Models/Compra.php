@@ -21,5 +21,19 @@ class Compra extends Model
         return $this->belongsTo(Product::class, 'products_id');
     }
 
+    protected static function booted()
+    {
+        static::created(function ($compra) {
+            $product = $compra->products;
+
+            // Incrementar el stock
+            $product->increment('stock', $compra->cantidad);
+
+            // Si el stock es mayor a 0, reactivar el producto
+            if ($product->stock > 0) {
+                $product->update(['estado' => 1]);  // Reactivar producto si hay stock
+            }
+        });
+    }
     
 }
