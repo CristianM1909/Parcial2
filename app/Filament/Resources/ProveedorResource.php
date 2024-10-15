@@ -46,6 +46,7 @@ class ProveedorResource extends Resource
                     ->sortable(),
                 Tables\Columns\TextColumn::make('correo')
                     ->searchable(),
+                    Tables\Columns\TextColumn::make('deleted_at')->dateTime()->toggleable(),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
@@ -56,15 +57,22 @@ class ProveedorResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                //
+                Tables\Filters\TrashedFilter::make(), // Filtro para registros eliminados
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
-            ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
-                ]),
+                Tables\Actions\DeleteAction::make()->action(function (Proveedor $record) {
+                    $record->delete(); // Eliminar suavemente
+                }),
+                Tables\Actions\RestoreAction::make()->action(function (Proveedor $record) {
+                    $record->restore(); // Restaurar registro eliminado
+                }),
+                Tables\Actions\Action::make('forceDelete')
+                    ->label('Borrar Definitivamente')
+                    ->action(function (Proveedor $record) {
+                        $record->forceDelete(); // Borrado definitivo
+                    })
+                    ->requiresConfirmation(), // Solicita confirmación antes de borrar
             ]);
     }
 

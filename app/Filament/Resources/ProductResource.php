@@ -55,6 +55,7 @@ class ProductResource extends Resource
                     ->sortable(),
                 Tables\Columns\IconColumn::make('estado')
                     ->boolean(),
+                Tables\Columns\TextColumn::make('deleted_at')->dateTime()->toggleable(),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
@@ -65,15 +66,22 @@ class ProductResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                //
+                Tables\Filters\TrashedFilter::make(), 
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
-            ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
-                ]),
+                Tables\Actions\DeleteAction::make()->action(function (Product $record) {
+                    $record->delete(); // Eliminar suavemente
+                }),
+                Tables\Actions\RestoreAction::make()->action(function (Product $record) {
+                    $record->restore(); // Restaurar registro eliminado
+                }),
+                Tables\Actions\Action::make('forceDelete')
+                    ->label('Borrar Definitivamente')
+                    ->action(function (Product $record) {
+                        $record->forceDelete(); // Borrado definitivo
+                    })
+                    ->requiresConfirmation(),
             ]);
     }
 
